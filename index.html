@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>팀 회식 일정 조사</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F5F6F8;
+    --panel: #FFFFFF;
+    --ink: #1F2430;
+    --ink-soft: #6B7180;
+    --line: #E4E6EC;
+    --lunch: #E8A33D;
+    --lunch-soft: #FBEBD1;
+    --dinner: #5B4B8A;
+    --dinner-soft: #E8E3F5;
+    --weekend-tint: #FAF8FF;
+    --heat: #E1584B;
+    --heat-soft: #FBE3E0;
+    --ok: #3E9A6E;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:28px 16px 80px;
+  }
+  .eyebrow{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--heat);}
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:clamp(24px,5vw,34px);
+    font-weight:700;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    margin:0 0 22px;
+    max-width:56ch;
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .legend span{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:5px 10px;
+    border-radius:20px;
+  }
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+  .i-lunch{background:var(--lunch);}
+  .i-dinner{background:var(--dinner);}
+  .i-weekend{background:var(--weekend-tint);border:1px solid var(--dinner);}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:18px;
+  }
+  .card h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+    margin:0 0 4px;
+  }
+  .card .desc{color:var(--ink-soft);font-size:13px;margin:0 0 14px;}
+
+  .weekday-row{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .weekday-row div{padding:4px 0;}
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+  }
+  .cell{
+    border-radius:10px;
+    min-height:78px;
+    padding:6px 5px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    background:#FBFBFC;
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .cell.weekend{background:var(--weekend-tint);border-color:#E7E1FA;}
+  .cell.disabled{
+    background:repeating-linear-gradient(135deg,#F0F0F2,#F0F0F2 4px,#F6F6F7 4px,#F6F6F7 8px);
+    color:#C7C9D1;
+    border-color:#ECECEE;
+  }
+  .cell.disabled .datenum{color:#C7C9D1;}
+  .cell.clickable{cursor:pointer;}
+  .cell.clickable:hover{border-color:var(--dinner);}
+  .cell.selected-result{outline:2px solid var(--dinner);outline-offset:-2px;}
+  .datenum{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .chip{
+    font-size:10.5px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    border-radius:6px;
+    padding:7px 4px;
+    min-height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    border:1px solid transparent;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+    transition:transform .08s ease;
+  }
+  .chip:active{transform:scale(0.96);}
+  .chip.readonly{cursor:default;}
+  .heatbar{
+    height:5px;
+    border-radius:3px;
+    background:var(--line);
+    overflow:hidden;
+    margin-top:auto;
+  }
+  .heatbar > div{height:100%;}
+
+  .submit-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-top:16px;
+  }
+  button.primary{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    padding:12px 22px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  button.primary:disabled{background:#B9BCC6;cursor:default;}
+  button.primary:hover:not(:disabled){background:#3A3F4F;}
+  .status{
+    font-size:13px;
+    color:var(--ink-soft);
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .status.done{color:var(--ok);font-weight:600;}
+
+  .rank-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:14px;
+  }
+  .rank-group h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13.5px;
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .rank-list li{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:#FBFBFC;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+  }
+  .rank-list li .rk-date{font-family:'Space Grotesk',sans-serif;font-weight:600;}
+  .rank-list li .rk-pct{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    color:var(--ok);
+  }
+  .rank-list li.empty{color:var(--ink-soft);justify-content:center;}
+
+  .detail-box{
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:14px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+  }
+  .detail-box b{color:var(--ink);}
+  .detail-slot{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .detail-slot:last-child{border-bottom:none;}
+
+  .footnote{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+
+  @media (max-width:640px){
+    .cell{min-height:64px;padding:4px 3px;}
+    .chip{font-size:9.5px;padding:3px 2px;}
+    .weekday-row{font-size:10.5px;}
+    .datenum{font-size:11px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot"></span>2026.07.27 — 2026.08.22</div>
+  <h1>팀 회식 일정 조사</h1>
+  <p class="sub">평일은 저녁, 주말은 점심·저녁 중 안 되는 시간을 눌러 표시하고 제출해 주세요. 이름은 입력하지 않아도 됩니다.</p>
+
+  <div class="legend">
+    <span><i class="i-lunch"></i>점심 (주말만)</span>
+    <span><i class="i-dinner"></i>저녁</span>
+    <span><i class="i-weekend"></i>주말</span>
+  </div>
+
+  <div class="card">
+    <h2>날짜 선택</h2>
+    <p class="desc">칸을 눌러 <b>안 되는</b> 시간대를 빨간색으로 표시하세요. 다시 누르면 취소됩니다.</p>
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="submit-row">
+      <button class="primary" id="submitBtn">제출하기</button>
+      <span class="status" id="statusText">아직 제출하지 않았어요</span>
+    </div>
+    <p class="footnote" id="totalCount">전체 응답 인원: 불러오는 중…</p>
+  </div>
+
+  <div class="card">
+    <h2>추천 날짜</h2>
+    <p class="desc">불가 인원이 가장 적은(=가장 많이 가능한) 날짜 상위 목록입니다. 응답이 쌓일수록 갱신됩니다.</p>
+    <div class="rank-grid">
+      <div class="rank-group">
+        <h3><i style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#E8E3F5;border:1px solid #D3C7EE;"></i>평일 저녁</h3>
+        <ul class="rank-list" id="rankWeekday"><li class="empty">불러오는 중…</li></ul>
+      </div>
+      <div class="rank-group">
+        <h3><i style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#FBEBD1;border:1px solid #F0D6A3;"></i>주말 점심</h3>
+        <ul class="rank-list" id="rankWeekendLunch"><li class="empty">불러오는 중…</li></ul>
+      </div>
+      <div class="rank-group">
+        <h3><i style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#E8E3F5;border:1px solid #D3C7EE;"></i>주말 저녁</h3>
+        <ul class="rank-list" id="rankWeekendDinner"><li class="empty">불러오는 중…</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>날짜 상세</h2>
+    <p class="desc">위 달력에서 날짜를 클릭하면 해당 날짜의 상세 통계가 여기 표시됩니다.</p>
+    <div class="detail-box" id="detailBox">달력에서 날짜를 선택해 주세요.</div>
+  </div>
+
+</div>
+
+<script type="module">
+/* ============================================================
+   STEP 1. 여기에 Firebase Config 붙여넣기
+   Firebase 콘솔 > 프로젝트 설정 > 내 앱(</>) 에서 복사한
+   const firebaseConfig = { ... } 안의 내용을 아래 객체 값으로
+   그대로 바꿔치기 하세요. (키 이름은 그대로 두고 값만 교체)
+   ============================================================ */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+window. firebaseConfig = {
+  apiKey: "AIzaSyCMtXHqKe6NTigNBwRBnTpKnFotSHbfBgk",
+  authDomain: "media-art-ba1d3.firebaseapp.com",
+  projectId: "media-art-ba1d3",
+  storageBucket: "media-art-ba1d3.firebasestorage.app",
+  messagingSenderId: "470823861318",
+  appId: "1:470823861318:web:6c4e9f9408587e632a9e47",
+  measurementId: "G-82EZ6GKRZB"
+};/* ===================== STEP 1 끝 ===================== */
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const submissionsCol = collection(db, "submissions");
+
+(function(){
+  const RANGE_START = new Date(2026,6,27); // Jul 27, 2026
+  const RANGE_END   = new Date(2026,7,22); // Aug 22, 2026
+  const WEEKDAY_LABELS = ['일','월','화','수','목','금','토'];
+
+  function fmt(d){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function isWeekend(d){ const g=d.getDay(); return g===0||g===6; }
+  function inRange(d){ return d>=RANGE_START && d<=RANGE_END; }
+  function startOfWeek(d){ const r=new Date(d); r.setDate(r.getDate()-r.getDay()); return r; }
+  function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+
+  const gridStart = startOfWeek(RANGE_START);
+  const gridEndBase = startOfWeek(RANGE_END);
+  const gridEnd = addDays(gridEndBase,6);
+  const allDates = [];
+  for(let d=new Date(gridStart); d<=gridEnd; d=addDays(d,1)){ allDates.push(new Date(d)); }
+
+  // ---- state ----
+  // selections[dateStr] = { dinner:bool } for weekday, { lunch:bool, dinner:bool } for weekend
+  const selections = {};
+  let submitted = false;
+  let submitting = false;
+
+  // ---- render weekday header ----
+  const weekdayRow = document.getElementById('weekdayRow');
+  WEEKDAY_LABELS.forEach(l=>{
+    const div=document.createElement('div');
+    div.textContent=l;
+    weekdayRow.appendChild(div);
+  });
+
+  // ---- render calendar ----
+  const calGrid = document.getElementById('calGrid');
+  const cellRefs = {}; // dateStr -> { el, chips:{lunch,dinner} }
+
+  function buildCalendar(){
+    calGrid.innerHTML='';
+    allDates.forEach(d=>{
+      const ds = fmt(d);
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const weekend = isWeekend(d);
+      const active = inRange(d);
+      if(weekend) cell.classList.add('weekend');
+      if(!active) cell.classList.add('disabled');
+
+      const num = document.createElement('div');
+      num.className='datenum';
+      num.textContent = d.getDate();
+      cell.appendChild(num);
+
+      if(active){
+        cell.classList.add('clickable');
+        if(!selections[ds]) selections[ds] = weekend ? {lunch:false,dinner:false} : {dinner:false};
+
+        if(weekend){
+          const lunchChip = makeChip('점심','lunch');
+          const dinnerChip = makeChip('저녁','dinner');
+          bindToggle(lunchChip, ds, 'lunch');
+          bindToggle(dinnerChip, ds, 'dinner');
+          cell.appendChild(lunchChip);
+          cell.appendChild(dinnerChip);
+          cellRefs[ds] = {el:cell, chips:{lunch:lunchChip, dinner:dinnerChip}};
+        } else {
+          const dinnerChip = makeChip('저녁 불가','dinner');
+          bindToggle(dinnerChip, ds, 'dinner');
+          cell.appendChild(dinnerChip);
+          cellRefs[ds] = {el:cell, chips:{dinner:dinnerChip}};
+        }
+
+        const heatbar = document.createElement('div');
+        heatbar.className='heatbar';
+        const fill = document.createElement('div');
+        heatbar.appendChild(fill);
+        cell.appendChild(heatbar);
+        cellRefs[ds].heatbar = fill;
+
+        cell.addEventListener('click',()=>showDetail(ds));
+      }
+
+      calGrid.appendChild(cell);
+    });
+  }
+
+  const CHIP_STYLE = {
+    lunch:  { bg:'#FBEBD1', color:'#8A5A12', border:'#F0D6A3' },
+    dinner: { bg:'#E8E3F5', color:'#3E3266', border:'#D3C7EE' },
+    off:    { bg:'#E1584B', color:'#FFFFFF', border:'#E1584B' }
+  };
+
+  function makeChip(label, type){
+    const c=document.createElement('div');
+    c.className='chip';
+    c.dataset.type = type;
+    c.textContent=label;
+    paintChip(c, type, false);
+    return c;
+  }
+
+  // Directly sets inline styles so the visual state can never get stuck
+  // behind a CSS-specificity or stale-class issue.
+  function paintChip(chipEl, type, isOff){
+    const s = isOff ? CHIP_STYLE.off : CHIP_STYLE[type];
+    chipEl.style.background = s.bg;
+    chipEl.style.color = s.color;
+    chipEl.style.borderColor = s.border;
+  }
+
+  function bindToggle(chipEl, ds, slot){
+    chipEl.style.cursor = 'pointer';
+    chipEl.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(submitted) return;
+      const next = !selections[ds][slot];
+      selections[ds][slot] = next;
+      paintChip(chipEl, slot, next);
+    }, false);
+  }
+
+  buildCalendar();
+
+  // ---- submit ----
+  const submitBtn = document.getElementById('submitBtn');
+  const statusText = document.getElementById('statusText');
+  const totalCountEl = document.getElementById('totalCount');
+
+  submitBtn.addEventListener('click', async ()=>{
+    if(submitted || submitting) return;
+    submitting = true;
+    submitBtn.disabled = true;
+    statusText.textContent = '제출하는 중…';
+    try{
+      const slots = [];
+      Object.keys(selections).forEach(ds=>{
+        const s = selections[ds];
+        if(s.dinner) slots.push(ds+':dinner');
+        if(s.lunch) slots.push(ds+':lunch');
+      });
+      await addDoc(submissionsCol, { slots, createdAt: serverTimestamp() });
+      submitted = true;
+      statusText.textContent = '제출 완료 ✅';
+      statusText.classList.add('done');
+      submitBtn.textContent = '제출 완료';
+      await loadAggregate();
+    }catch(err){
+      console.error(err);
+      statusText.textContent = '제출에 실패했어요. 다시 시도해 주세요.';
+      submitBtn.disabled = false;
+    }finally{
+      submitting = false;
+    }
+  });
+
+  // ---- aggregate ----
+  let aggregate = null; // { total, counts: { 'YYYY-MM-DD:slot': n } }
+
+  async function loadAggregate(){
+    try{
+      const snap = await getDocs(submissionsCol);
+      const counts = {};
+      let total = 0;
+      snap.forEach(doc=>{
+        try{
+          const slots = doc.data().slots || [];
+          total++;
+          slots.forEach(s=>{ counts[s] = (counts[s]||0)+1; });
+        }catch(e){ /* skip broken record */ }
+      });
+      aggregate = { total, counts };
+      renderAggregate();
+    }catch(err){
+      console.error(err);
+      totalCountEl.textContent = '전체 응답 인원을 불러오지 못했어요.';
+    }
+  }
+
+  function renderAggregate(){
+    const total = aggregate.total;
+    totalCountEl.textContent = `전체 응답 인원: ${total}명 제출`;
+
+    // heatbars
+    Object.keys(cellRefs).forEach(ds=>{
+      const ref = cellRefs[ds];
+      const d = new Date(ds+'T00:00:00');
+      const weekend = isWeekend(d);
+      let unavail, color;
+      if(weekend){
+        const l = aggregate.counts[ds+':lunch']||0;
+        const din = aggregate.counts[ds+':dinner']||0;
+        unavail = Math.max(l,din);
+        color = 'var(--heat)';
+      } else {
+        unavail = aggregate.counts[ds+':dinner']||0;
+        color = 'var(--heat)';
+      }
+      const pct = total>0 ? Math.min(100, Math.round((unavail/total)*100)) : 0;
+      if(ref.heatbar){
+        ref.heatbar.style.width = pct+'%';
+        ref.heatbar.style.background = color;
+      }
+    });
+
+    renderRanking('rankWeekday', dateType('weekday','dinner'));
+    renderRanking('rankWeekendLunch', dateType('weekend','lunch'));
+    renderRanking('rankWeekendDinner', dateType('weekend','dinner'));
+  }
+
+  function dateType(kind, slot){
+    const total = aggregate.total;
+    const rows = [];
+    allDates.forEach(d=>{
+      if(!inRange(d)) return;
+      const weekend = isWeekend(d);
+      if(kind==='weekday' && weekend) return;
+      if(kind==='weekend' && !weekend) return;
+      const ds = fmt(d);
+      const unavail = aggregate.counts[ds+':'+slot] || 0;
+      const avail = Math.max(0, total-unavail);
+      const pct = total>0 ? Math.round((avail/total)*100) : 0;
+      rows.push({ds, unavail, avail, pct, label: labelDate(d)});
+    });
+    rows.sort((a,b)=> a.unavail-b.unavail);
+    return rows.slice(0,5);
+  }
+
+  function labelDate(d){
+    const wd = WEEKDAY_LABELS[d.getDay()];
+    return `${d.getMonth()+1}/${d.getDate()} (${wd})`;
+  }
+
+  function renderRanking(elId, rows){
+    const ul = document.getElementById(elId);
+    ul.innerHTML='';
+    if(!aggregate || aggregate.total===0){
+      ul.innerHTML = '<li class="empty">아직 응답이 없어요</li>';
+      return;
+    }
+    rows.forEach(r=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="rk-date">${r.label}</span><span class="rk-pct">가능 ${r.pct}%</span>`;
+      ul.appendChild(li);
+    });
+  }
+
+  // ---- detail panel ----
+  const detailBox = document.getElementById('detailBox');
+  let selectedResultCell = null;
+
+  function showDetail(ds){
+    if(selectedResultCell) selectedResultCell.classList.remove('selected-result');
+    const ref = cellRefs[ds];
+    if(ref){ ref.el.classList.add('selected-result'); selectedResultCell = ref.el; }
+
+    if(!aggregate){
+      detailBox.innerHTML = '집계 데이터를 불러오는 중이에요…';
+      return;
+    }
+    const d = new Date(ds+'T00:00:00');
+    const weekend = isWeekend(d);
+    const total = aggregate.total;
+    let html = `<div style="margin-bottom:8px;"><b>${labelDate(d)}</b> · 전체 응답 ${total}명</div>`;
+
+    if(weekend){
+      ['lunch','dinner'].forEach(slot=>{
+        const label = slot==='lunch' ? '점심' : '저녁';
+        const unavail = aggregate.counts[ds+':'+slot] || 0;
+        const avail = Math.max(0,total-unavail);
+        const pct = total>0 ? Math.round((avail/total)*100) : 0;
+        html += `<div class="detail-slot"><span>${label}</span><span>불가 ${unavail}명 · 가능 ${avail}명 (${pct}%)</span></div>`;
+      });
+    } else {
+      const unavail = aggregate.counts[ds+':dinner'] || 0;
+      const avail = Math.max(0,total-unavail);
+      const pct = total>0 ? Math.round((avail/total)*100) : 0;
+      html += `<div class="detail-slot"><span>저녁</span><span>불가 ${unavail}명 · 가능 ${avail}명 (${pct}%)</span></div>`;
+    }
+    detailBox.innerHTML = html;
+  }
+
+  // initial load
+  loadAggregate();
+})();
+</script>
+</body>
+</html>
